@@ -1,0 +1,131 @@
+"""Data provider with caching"""
+import asyncio
+import logging
+from cachetools import TTLCache
+from concurrent.futures import ThreadPoolExecutor
+import yfinance as yf
+import numpy as np
+from config import Config
+
+log = logging.getLogger(__name__)
+
+_executor = ThreadPoolExecutor(max_workers=10)
+_quote_cache = TTLCache(maxsize=2000, ttl=Config.QUOTE_CACHE_TTL)
+_history_cache = TTLCache(maxsize=500, ttl=Config.HISTORY_CACHE_TTL)
+
+
+class DataProvider:
+    
+    @staticmethod
+    async def fetch_yf_quote(symbol):
+        cache_key = "q:" + symbol
+        if cache_key in _quote_cache:
+            return _quote_cache[cache_key]
+        
+        loop = asyncio.get_event_loop()
+        try:
+            def _fetch():
+                t = yf.Ticker(symbol)
+                hist = t.history(period="5d", interval="1d")
+                if hist.empty:
+                    return None
+                last = hist.iloc[-1]
+                prev = hist.iloc[-2] if len(hist) > 1 else last
+                return {
+                    'price': float(last['Close']),
+                    'open': float(last['Open']),
+                    'high': float(last['High']),
+                    'low': float(last['Low']),
+                    'volume': int(last['Volume']) if last['Volume'] > 0 else 1000,
+                    'prevClose': float(prev['Close']),
+                    'change': float(last['Close'] - prev['Close']),
+                    'changePct': float((last['Close'] - prev['Close']) / prev['Close'] * 100),
+                }
+            
+            data = await loop.run_in_executor(_executor, _fetch)
+            if data:
+                _quote_cache[cache_key] = data
+            return data
+        except Exception as e:
+            log.warning("yfinance quote error " + symbol + ": " + str(e))
+            return None
+    
+    @staticmethod
+    async def fetch_yf_history(symbol, period="1y", interval="1d"):
+        cache_key = "h:" + symbol + ":" + period + ":" + interval
+        if cache_key in _history_cache:
+            return _history_cache[cache_key]
+        
+        loop = asyncio.get_event_loop()
+        try:
+            def _fetch():
+                t = yf.Ticker(symbol)
+                hist = t.history(period=period, interval=interval)
+                if hist.empty:
+                    return []
+                return [
+                    {
+                        'o': float(row['Open']),
+                        'h': float(row['High']),
+                        'l': float(row['Low']),
+                        'c': float(row['Close']),
+                        'v': int(row['Volume']) if row['Volume'] > 0 else 1000,
+                        't': row.name.isoformat()
+                    }
+                    for _, row in hist.iterrows()
+                ]
+            
+            data = await loop.run_in_executor(_executor, _fetch)
+            if data:
+                _history_cache[cache_key] = data
+            return data
+        except Exception as e:
+            log.warning("yfinance history error " + symbol + ": " + str(e))
+            return []
+    
+    @staticmethod
+    async def fetch_yf_batch_quotes(symbols):
+        tasks = [DataProvider.fetch_yf_quote(s) for s in symbols]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        return {
+            s: r for s, r in zip(symbols, results) 
+            if not isinstance(r, Exception) and r is not None
+        }
+    
+    @staticmethod
+    def simulate_ohlcv(base, days=260, volatility=0.025):
+        seed = int(abs(base) * 1000) % (2**31)
+        rng = np.random.default_rng(seed)
+        d = []
+        p = base * (0.7 + rng.random() * 0.3)
+        for i in range(days, -1, -1):
+            chg = (rng.random() - 0.47) * volatility * 2
+            o = round(p, 4)
+            c = round(p * (1 + chg), 4)
+            h = round(max(o, c) * (1 + rng.random() * volatility * 0.4), 4)
+            l = round(min(o, c) * (1 - rng.random() * volatility * 0.4), 4)
+            d.append({
+                'o': o, 'h': h, 'l': l, 'c': c,
+                'v': int(rng.integers(10000, 510000))
+            })
+            p = c
+        return d
+    
+    @staticmethod
+    def simulate_quote(base_symbol, vol=0.025):
+        ohlcv = DataProvider.simulate_ohlcv(base_symbol['base'], 260, vol)
+        last = ohlcv[-1]
+        prev = ohlcv[-2]
+        price = last['c']
+        pc = prev['c']
+        return {
+            'price': price,
+            'open': last['o'],
+            'high': last['h'],
+            'low': last['l'],
+            'volume': last['v'],
+            'prevClose': pc,
+            'change': round(price - pc, 4),
+            'changePct': round((price - pc) / pc * 100, 2),
+            'ohlcv': ohlcv,
+        }
