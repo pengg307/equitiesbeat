@@ -65,12 +65,17 @@ class BaseMarket(ABC):
 
                 if result and result['ohlcv']:
                     # Build symbol from CSV data
+                    latest = dict(result['latest'])
+                    latest['prevClose'] = result['prevClose']
+                    # Compute change/changePct from latest price and prevClose
+                    pc = latest['prevClose']
+                    latest['change'] = round(latest['price'] - pc, 4)
+                    latest['changePct'] = round((latest['price'] - pc) / pc * 100, 2) if pc else 0
                     symbol = self._build_symbol(
-                        tpl, result['latest'], result['ohlcv'], is_sim=False
+                        tpl, latest, result['ohlcv'], is_sim=False
                     )
                     symbol['csvFile'] = result.get('file', '')
                     symbol['csvCount'] = result.get('count', 0)
-                    symbol['prevClose'] = result['prevClose']
                     log.info("[" + self.KEY + "] " + code + ": loaded " +
                              str(result['count']) + " bars from CSV")
                 else:
