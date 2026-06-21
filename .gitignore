@@ -11,9 +11,9 @@ env/
 Thumbs.db
 *.swp
 .env
-run.sh
-run.bat
-requirements.txt
-config.py
 app.py.bak
 app.py.bak2
+data_structure_diff_report.json
+requirements.txt
+run.bat
+run.sh

@@ -43,20 +43,54 @@ class BaseMarket(ABC):
         pass
     
     async def initialize(self):
-        """Phase 1: Load ALL symbols with simulation INSTANTLY (no yfinance wait)"""
+        """Phase 1: Load ALL symbols — CSV data first, then simulation for rest."""
         if self._loaded:
             return
-        
+
         templates = self.get_symbol_list()
-        log.info("[" + self.KEY + "] Loading " + str(len(templates)) + " symbols with simulation...")
-        
-        # Build all symbols with simulation - fast, no network
+        log.info("[" + self.KEY + "] Loading " + str(len(templates)) + " symbols...")
+
+        # Determine CSV dir from config if available
+        csv_dir = getattr(self, 'CSV_DIR', None)
+
         for t in templates:
-            sim = DataProvider.simulate_quote(t, self.SIMULATION_VOL)
-            self.symbols.append(self._build_symbol(t, sim, sim['ohlcv'], is_sim=True))
-        
+            tpl = dict(t)
+            code = tpl.get('code', '')
+
+            # Check if this symbol has CSV data available
+            if tpl.get('csvData') and csv_dir:
+                from core.csv_loader import CSVLoader
+                tf = tpl.get('csvTimeframe', '60min')
+                result = CSVLoader.load_ohlcv(csv_dir, code, tf)
+
+                if result and result['ohlcv']:
+                    # Build symbol from CSV data
+                    symbol = self._build_symbol(
+                        tpl, result['latest'], result['ohlcv'], is_sim=False
+                    )
+                    symbol['csvFile'] = result.get('file', '')
+                    symbol['csvCount'] = result.get('count', 0)
+                    symbol['prevClose'] = result['prevClose']
+                    log.info("[" + self.KEY + "] " + code + ": loaded " +
+                             str(result['count']) + " bars from CSV")
+                else:
+                    # Graceful degradation: fall back to simulation
+                    log.warning("[" + self.KEY + "] " + code +
+                                ": CSV load failed, falling back to simulation")
+                    sim = DataProvider.simulate_quote(tpl, self.SIMULATION_VOL)
+                    symbol = self._build_symbol(tpl, sim, sim['ohlcv'], is_sim=True)
+            else:
+                # Use simulation data
+                sim = DataProvider.simulate_quote(tpl, self.SIMULATION_VOL)
+                symbol = self._build_symbol(tpl, sim, sim['ohlcv'], is_sim=True)
+
+            self.symbols.append(symbol)
+
         self._loaded = True
-        log.info("[" + self.KEY + "] Ready: " + str(len(self.symbols)) + " symbols (Phase 1: simulated)")
+        live_count = sum(1 for s in self.symbols if not s.get('isSimulated'))
+        sim_count = len(self.symbols) - live_count
+        log.info("[" + self.KEY + "] Ready: " + str(len(self.symbols)) +
+                 " symbols (CSV: " + str(live_count) + ", SIM: " + str(sim_count) + ")")
         
         # Phase 2: Start background task to upgrade to LIVE data
         if self.USE_REAL_DATA:

@@ -1,5 +1,6 @@
-"""Chinese Futures - Simulated"""
+"""Chinese Futures - Simulated (with CSV data for precious metals)"""
 from .base import BaseMarket
+from config import Config
 
 
 class CNFuturesMarket(BaseMarket):
@@ -12,6 +13,9 @@ class CNFuturesMarket(BaseMarket):
     LIMIT_DN = -999
     UNIT = 'contracts'
     SIMULATION_VOL = 0.020
+
+    # CSV data directory for CN futures
+    CSV_DIR = Config.CN_FUT_CSV_DIR if getattr(Config, 'CN_FUT_CSV_ENABLED', False) else None
     
     EXCHANGES = [
         ['', 'All Exchanges'],
@@ -55,8 +59,8 @@ class CNFuturesMarket(BaseMarket):
         {'code':'ni2506','name':'Nickel','sector':'NonFerrous','exchange':'SHFE','base':148500,'month':'2506','oi':85000,'group':'metals'},
         {'code':'pb2506','name':'Lead','sector':'NonFerrous','exchange':'SHFE','base':18250,'month':'2506','oi':85000,'group':'metals'},
         {'code':'sn2506','name':'Tin','sector':'NonFerrous','exchange':'SHFE','base':268500,'month':'2506','oi':45000,'group':'metals'},
-        {'code':'au2506','name':'Gold','sector':'Precious','exchange':'SHFE','base':548.5,'month':'2506','oi':285000,'group':'metals'},
-        {'code':'ag2506','name':'Silver','sector':'Precious','exchange':'SHFE','base':6885,'month':'2506','oi':485000,'group':'metals'},
+        {'code':'au2506','name':'Gold','sector':'Precious','exchange':'SHFE','base':548.5,'month':'2506','oi':285000,'group':'metals','csvData':True,'csvTimeframe':'15min'},
+        {'code':'ag2506','name':'Silver','sector':'Precious','exchange':'SHFE','base':6885,'month':'2506','oi':485000,'group':'metals','csvData':True,'csvTimeframe':'15min'},
         {'code':'rb2510','name':'Rebar','sector':'Ferrous','exchange':'SHFE','base':3585,'month':'2510','oi':1850000,'group':'metals'},
         {'code':'hc2510','name':'Hot Rolled Coil','sector':'Ferrous','exchange':'SHFE','base':3725,'month':'2510','oi':485000,'group':'metals'},
         {'code':'i2509','name':'Iron Ore','sector':'Ferrous','exchange':'DCE','base':825.5,'month':'2509','oi':685000,'group':'metals'},
