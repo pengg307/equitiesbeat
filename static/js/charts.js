@@ -89,7 +89,8 @@ const Charts = {
     p3: new Set(['macd']),
     charts: { c1: null, c2: null, c3: null, cVP: null },
     symbol: null,
-    market: null
+    market: null,
+    customBarCount: 200
   },
   
   UP: '#f43f5e', DN: '#22c55e',
@@ -101,7 +102,11 @@ const Charts = {
     ['1d','5d','1m','3m','6m','1y'].forEach(p => {
       html += '<button class="period-btn' + (p === self.state.period ? ' on' : '') + '" data-p="' + p + '">' + p + '</button>';
     });
-    html += '</div></div><div class="tbar-sep"></div><div class="toolbar-group"><span class="tbar-label">MA:</span>';
+    html += '</div></div><div class="tbar-sep"></div>';
+    html += '<div class="toolbar-group"><span class="tbar-label">Bars:</span>';
+    html += '<input type="number" id="barCountInput" min="10" max="2000" value="200" style="width:70px;padding:3px 6px;background:#0d1f3c;color:#c8dae9;border:1px solid #1e3a5f;border-radius:4px;font-size:12px;">';
+    html += '<span style="color:#4a6a8f;font-size:11px;margin-left:4px;">/2000</span></div><div class="tbar-sep"></div>';
+    html += '<div class="toolbar-group"><span class="tbar-label">MA:</span>';
     ['ma5','ma10','ma20','ma60','ma200','boll'].forEach(k => {
       html += '<label class="cb-item' + (self.state.overlays[k] ? ' on' : '') + '" data-ov="' + k + '">';
       html += '<input type="checkbox"' + (self.state.overlays[k] ? ' checked' : '') + '> ' + k.toUpperCase() + '</label>';
@@ -125,6 +130,18 @@ const Charts = {
         self.drawAll(); 
       };
     });
+    // Bar count input handler
+    const barInput = t.querySelector('#barCountInput');
+    if (barInput) {
+      barInput.addEventListener('change', () => {
+        let v = parseInt(barInput.value, 10);
+        if (isNaN(v) || v < 10) v = 10;
+        if (v > 2000) v = 2000;
+        barInput.value = v;
+        self.state.customBarCount = v;
+        self.drawAll();
+      });
+    }
     t.querySelectorAll('[data-ov]').forEach(l => {
       l.onclick = (e) => {
         if (e.target.tagName === 'INPUT') return;
@@ -171,8 +188,10 @@ const Charts = {
         isIntraday: true
       };
     }
-    const nMap = { '5d':5, '1m':22, '3m':66, '6m':132, '1y':252 };
-    return { data: s.ohlcv.slice(-(nMap[this.state.period] || 60)), isIntraday: false };
+    const nMap = { '5d':50, '1m':200, '3m':500, '6m':1000, '1y':2000 };
+    const maxBars = this.state.customBarCount || 200;
+    const periodLimit = nMap[this.state.period] || 200;
+    return { data: s.ohlcv.slice(-Math.min(periodLimit, maxBars)), isIntraday: false };
   },
   
   makeLabels(data, isIntraday) {

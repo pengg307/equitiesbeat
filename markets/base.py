@@ -184,7 +184,7 @@ class BaseMarket(ABC):
     def _build_symbol(self, tpl, quote, ohlcv, is_sim):
         sigs = detect_signals(ohlcv)
         last = ohlcv[-1]
-        intraday = [d['c'] for d in ohlcv[-60:]]
+        intraday = [d['c'] for d in ohlcv[-500:]]
         amp = ((last['h'] - last['l']) / quote['prevClose'] * 100) if quote.get('prevClose') else 0
         
         result = dict(tpl)

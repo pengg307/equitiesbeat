@@ -190,7 +190,7 @@ const App = {
           Object.assign(s, u);
           if (s.intraday) {
             s.intraday.push(u.price);
-            if (s.intraday.length > 60) s.intraday.shift();
+            if (s.intraday.length > 500) s.intraday.shift();
           }
           changed = true;
           self.flashRow(s.code, u.price > oldPrice);
