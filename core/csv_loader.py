@@ -26,8 +26,17 @@ class CSVLoader:
 
     # contract_code -> {prefix, contract, timeframe}
     CONTRACT_MAP = {
+        # Gold & Silver (SHFE)
         'ag2506': {'prefix': 'AG', 'contract': 'ag2606'},
         'au2506': {'prefix': 'AU', 'contract': 'au2606'},
+        # 7 varieties from morning_report pipeline (15min aggregated from 1min)
+        'rb2610': {'prefix': 'RB', 'contract': 'rb2610'},
+        'jm2609': {'prefix': 'JM', 'contract': 'jm2609'},
+        'j2609':  {'prefix': 'J',  'contract': 'j2609'},
+        'jd2609': {'prefix': 'JD', 'contract': 'jd2609'},
+        'ta2609': {'prefix': 'TA', 'contract': 'ta2609'},
+        'cf2609': {'prefix': 'CF', 'contract': 'cf2609'},
+        'ap2609': {'prefix': 'AP', 'contract': 'ap2609'},
     }
 
     # Timeframe suffix mapping
