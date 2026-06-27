@@ -88,6 +88,7 @@ class CNFuturesMarket(BaseMarket):
         {'code':'a2509','name':'Soybean 1','sector':'Agriculture','exchange':'DCE','base':4385,'month':'2509','oi':285000,'group':'ags'},
         {'code':'b2509','name':'Soybean 2','sector':'Agriculture','exchange':'DCE','base':3685,'month':'2509','oi':85000,'group':'ags'},
         {'code':'cf2609','name':'Cotton Yarn','sector':'Agriculture','exchange':'CZCE','base':15850,'month':'2609','oi':585000,'group':'ags','csvData':True,'csvTimeframe':'15min'},
+        {'code':'ap2609','name':'Persimmon','sector':'Agriculture','exchange':'CZCE','base':7470,'month':'2609','oi':185000,'group':'ags','csvData':True,'csvTimeframe':'15min'},
         {'code':'sr509','name':'Sugar','sector':'Agriculture','exchange':'CZCE','base':6285,'month':'2509','oi':685000,'group':'ags'},
         {'code':'oi509','name':'Rapeseed Oil','sector':'Agriculture','exchange':'CZCE','base':8485,'month':'2509','oi':385000,'group':'ags'},
         {'code':'rm509','name':'Rapeseed Meal','sector':'Agriculture','exchange':'CZCE','base':2785,'month':'2509','oi':285000,'group':'ags'},
